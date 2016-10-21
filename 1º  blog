@@ -1,0 +1,103 @@
+from Tkinter import *
+from PIL import Image
+import math
+
+thresholdBrightness = 600;
+centerLine = 1368;
+leftBound = 362
+rightBound = 2287
+upperBound = 996
+lowerBound = 1368
+
+def findBrightestToRight(im, y):
+  rowBrightestPosition = 0
+  rowBrightestValue = 0
+  global centerLine
+  leftEdge = -1
+  rightEdge = -1
+  pix = im.load()
+
+
+  if y > lowerBound:
+   return -1
+
+  if y < upperBound:
+   return -1
+
+
+  for x in range(centerLine,rightBound,2):
+   pixel = pix[x,y] #get rgb value of current pixel
+   pixelBrightness = pixel[0] + pixel[1] + pixel[2]
+   if pixelBrightness > rowBrightestValue:
+    rowBrightestValue = pixelBrightness
+    rowBrightestPosition = x
+
+
+  if rowBrightestValue > thresholdBrightness:
+   return rowBrightestPosition
+  else:
+   return -1
+
+#todo: handle return of -1 properly
+
+print("Starting...")
+
+
+maxSteps = 0;
+yPixelsPerMM = 1.00
+xPixelsPerMM = 1.00
+thetaDegrees = 27.0 #angle formed by laser line to camera
+thetaRadians = math.radians(thetaDegrees)
+rotationAngleDegrees = 0;
+rotationAngleRadians = 0;
+degreesPerStep = .45
+result = ""
+
+numberOfFiles = 800;
+
+
+thetaRadians = math.radians(thetaDegrees)
+
+#make blank files
+f = open('scannerOutput1.asc', 'w')
+f.close()
+
+
+for currentFile in range(0,numberOfFiles):
+  print "Processing file " + str(currentFile)
+  filename = str(currentFile) + ".jpg"
+  im = Image.open(filename)
+  imageWidth = im.size[0]
+  imageHeight = im.size[1]
+
+rotationAngleRadians = math.radians(rotationAngleDegrees)
+print rotationAngleDegrees
+result1 = ""
+
+
+for y in range(0,imageHeight):
+
+    rowBrightestPosition = findBrightestToRight(im, y)
+    #print y
+    ##invert y
+    yPosition = ((imageHeight * 1.00) - y) * yPixelsPerMM;   #this will need to be scaled
+
+    xPosition = ((rowBrightestPosition - centerLine)/(math.sin(thetaRadians))) * xPixelsPerMM;
+    zPosition = 0.00;
+
+    ##we need to rotate the x,y,0 position to it's final position based on stepper motor angle
+    ##rotate about y axis to proper position according to current part rotation angle
+    rotationAngleRadians = math.radians(rotationAngleDegrees)
+    zRotated = (zPosition * math.cos(rotationAngleRadians)) - (xPosition * math.sin(rotationAngleRadians));
+    xRotated = (zPosition * math.sin(rotationAngleRadians)) + (xPosition * math.cos(rotationAngleRadians));
+    yRotated = yPosition;
+
+if rowBrightestPosition != -1:
+ result1 =result1 + str(xRotated) + "," + str(yRotated) + "," + str(zRotated) + "\r\n";
+
+rotationAngleDegrees = rotationAngleDegrees + degreesPerStep
+f = open('scannerOutput1.asc', 'a')
+f.write(result1)
+f.close()
+
+print "Done"
